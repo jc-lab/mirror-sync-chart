@@ -35,6 +35,6 @@ jobs:
           file: image/syncer.Dockerfile
           push: true
           tags: |
-            ghcr.io/${{ github.repository_owner }}/mirror-server:latest
-            ghcr.io/${{ github.repository_owner }}/mirror-server:release-${{ env.IMAGE_VERSION }}
+            ghcr.io/${{ github.repository_owner }}/mirror-syncer:latest
+            ghcr.io/${{ github.repository_owner }}/mirror-syncer:release-${{ env.IMAGE_VERSION }}
 
