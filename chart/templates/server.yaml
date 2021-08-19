@@ -1,0 +1,79 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: "{{ .Release.Name }}-server"
+  labels:
+    {{- include "commonLabels" . | indent 4 }}
+    app: server
+spec:
+  serviceName: "{{ .Release.Name }}"
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "commonLabels" . | indent 6 }}
+      app: server
+  template:
+    metadata:
+      labels:
+        {{- include "commonLabels" . | indent 8 }}
+        app: server
+    spec:
+      terminationGracePeriodSeconds: 300
+      containers:
+      - name: nginx
+        image: {{ template "imageFullName" .Values.server }}
+        imagePullPolicy: {{ .Values.server.image.pullPolicy }}
+        command:
+        - "/opt/nginx.sh"
+        ports:
+        - name: http
+          containerPort: 80
+        - name: https
+          containerPort: 443
+        {{- if .Values.server.nginx.resources }}
+        resources: {{- toYaml .Values.server.nginx.resources | nindent 10 }}
+        {{- end }}
+        volumeMounts:
+        - name: data
+          mountPath: /data
+      - name: ssh
+        image: {{ template "imageFullName" .Values.server }}
+        imagePullPolicy: {{ .Values.server.image.pullPolicy }}
+        command:
+        - "/opt/sshd.sh"
+        ports:
+        - name: ssh
+          containerPort: 22
+        {{- if .Values.server.sshd.resources }}
+        resources: {{- toYaml .Values.server.sshd.resources | nindent 10 }}
+        {{- end }}
+        volumeMounts:
+        - name: data
+          mountPath: /data
+        - name: ssh-public
+          mountPath: /ssh-secret
+      volumes:
+      - name: ssh-public
+        secret:
+          secretName: "{{ .Release.Name }}-updater-ssh"
+          items:
+          - key: public
+            path: public
+{{- if .Values.persistence.existingClaim }}
+      - name: data
+        persistentVolumeClaim:
+          claimName: {{ .Values.persistence.existingClaim }}
+{{- else }}
+  volumeClaimTemplates:
+  - metadata:
+      name: data
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      {{- if .Values.persistence.storageClassName }}
+      storageClassName: {{ .Values.persistence.storageClassName | quote }}
+      {{- end }}
+      resources:
+        requests:
+          storage: "{{ .Values.persistence.size }}"
+{{- end }}
+

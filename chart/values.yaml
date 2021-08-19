@@ -1,0 +1,53 @@
+server:
+  image:
+    registry: "ghcr.io"
+    repository: "jc-lab/mirror-server:latest"
+    pullPolicy: Always
+  nginx:
+    resources:
+      requests:
+        memory: "256Mi"
+      limits:
+        memory: "512Mi"
+  sshd:
+    resources:
+      requests:
+        memory: "32Mi"
+      limits:
+        memory: "512Mi"
+syncer:
+  image:
+    registry: "ghcr.io"
+    repository: "jc-lab/mirror-syncer:latest"
+    pullPolicy: Always
+  resources:
+    requests:
+      memory: "32Mi"
+    limits:
+      memory: "256Mi"
+
+service:
+  type: LoadBalancer
+  loadBalancerIP: ""
+  externalTrafficPolicy: Cluster
+
+persistence:
+  # existingClaim: 
+  # storageClassName:
+  size: 128Gi
+
+updater:
+  sshPrivateKey: ""
+  sshPublicKey: ""
+
+mirrors:
+#  - name: alpine
+#    destination: alpine
+#    schedule: "0 0 * * *"
+#    rsync:
+#      - rsync://mirror.math.princeton.edu/pub/alpinelinux/v3.13
+#      - rsync://ftp.acc.umu.se/mirror/alpinelinux.org/v3.13
+#      - rsync://ftp.halifax.rwth-aachen.de/alpine/v3.13
+# ...
+
+

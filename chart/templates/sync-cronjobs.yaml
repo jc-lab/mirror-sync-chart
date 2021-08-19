@@ -1,0 +1,59 @@
+{{ $root := . }}
+{{ range $item := .Values.mirrors }}
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: "{{ $root.Release.Name }}-sync-{{ $item.name }}"
+  labels:
+    {{- include "commonLabels" $root | indent 4 }}
+    app: syncer
+    mirror: {{ $item.name | quote }}
+  annotations:
+spec:
+  schedule: {{ $item.schedule | quote }}
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    metadata:
+      labels:
+        {{- include "commonLabels" $root | indent 8 }}
+        app: syncer
+        mirror: {{ $item.name | quote }}
+    spec:
+      template:
+        metadata:
+          labels:
+            {{- include "commonLabels" $root | indent 12 }}
+            app: syncer
+            mirror: {{ $item.name | quote }}
+        spec:
+          restartPolicy: OnFailure
+          volumes:
+            - name: mirrors
+              configMap:
+                name: "{{ $root.Release.Name }}-mirrors"
+            - name: ssh-private
+              secret:
+                secretName: "{{ $root.Release.Name }}-updater-ssh"
+                defaultMode: 0400
+          containers:
+            - name: job
+              image: {{ template "imageFullName" $root.Values.syncer }}
+              imagePullPolicy: {{ $root.Values.syncer.image.pullPolicy }}
+              volumeMounts:
+                - name: mirrors
+                  mountPath: /mirrors
+                - name: ssh-private
+                  mountPath: /ssh-private
+              env:
+                - name: SERVER_SVC_NAME
+                  value: "{{ $root.Release.Name }}"
+                - name: MIRROR_NAME
+                  value: {{ $item.name | quote }}
+              {{- if $root.Values.syncer.resources }}
+              resources: {{- toYaml $root.Values.syncer.resources | nindent 16 }}
+              {{- end }}
+---
+{{ end }}
+
